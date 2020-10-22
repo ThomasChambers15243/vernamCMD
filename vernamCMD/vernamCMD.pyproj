@@ -12,7 +12,7 @@
     <Name>vernamCMD</Name>
     <RootNamespace>vernamCMD</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>"hi!" -en -dc</CommandLineArguments>
+    <CommandLineArguments>"hi!" -en</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

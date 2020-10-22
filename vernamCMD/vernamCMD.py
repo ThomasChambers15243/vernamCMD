@@ -7,7 +7,9 @@ plainText_cypherText = parser.add_mutually_exclusive_group(required=True)
 encrypt_decrypt = parser.add_mutually_exclusive_group(required=True)
 
 
-plainText_cypherText.add_argument("plainText", help="The plain text that is desired to be encrypted")
+plainText_cypherText.add_argument("-pt","--plainText", help="The plain text that is desired to be encrypted")
+plainText_cypherText.add_argument("-ct","--cypherText", help="The cyhperText that is desired to be decrypted")
+
 plainText_cypherText.add_argument("-k","--key", help="The key to be used to decrp, if one is not given then one will be generated",type=int)
 
 encrypt_decrypt.add_argument("-en","--encrypt", help="True if you wish to decrypt plaintext, defualt is False. Providing a key is optional. en cannot be used with dc", action="store_true")
@@ -72,9 +74,11 @@ def encryptText(key=generateKey(len(args.plainText))):
 def decryptCypher(key,cypherText):
   decypherText = logicalXOR(key,cypherText)
   plain = binToText(decypherText)
+
   return plain
 
 def main():
+  #CTK = CyhperText and Key where CTK[0] = cyphertext and CTK[1] = key
   if args.encrypt == True:
     if args.key == None:
       CTK = encryptText()
@@ -82,9 +86,10 @@ def main():
     else:
       CTK = encryptText(args.key)
       cypherText = CTK[0]
-  elif args.decrypt == True:
+    KEY = CTK[1]
+  #'elif args.decrypt == True:
 
-  print(decryptCypher(CTK[1],cypherText))
+#print(decryptCypher(CTK[1],cypherText))
 
 if __name__ == "__main__":
     main()
