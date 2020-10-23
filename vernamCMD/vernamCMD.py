@@ -1,6 +1,9 @@
 
 import secrets
 import argparse
+import sys
+import os.path
+import re
 
 parser  = argparse.ArgumentParser(description="A program to simulate the vernam cypher")
 plainText_cypherText = parser.add_mutually_exclusive_group(required=True)
@@ -8,16 +11,20 @@ encrypt_decrypt = parser.add_mutually_exclusive_group(required=True)
 
 
 plainText_cypherText.add_argument("-pt","--plainText", help="The plain text that is desired to be encrypted")
-plainText_cypherText.add_argument("-ct","--cypherText", help="The cyhperText that is desired to be decrypted")
+plainText_cypherText.add_argument("-ct","--cypherText", help="The cypherText that is desired to be decrypted")
 
-plainText_cypherText.add_argument("-k","--key", help="The key to be used to decrp, if one is not given then one will be generated",type=int)
+plainText_cypherText.add_argument("-ptf", help = "Text File containing the plain text that is desired to be encrypted")
+plainText_cypherText.add_argument("-ctf", help = "BinaryFile containing the cypherText that is desired to be decryted")
 
-encrypt_decrypt.add_argument("-en","--encrypt", help="True if you wish to decrypt plaintext, defualt is False. Providing a key is optional. en cannot be used with dc", action="store_true")
-encrypt_decrypt.add_argument("-dc","--decrypt", help="True if you wish to decrypt, defualt is False, key must be provided, dc cannot be used with dc.", action="store_true")
+parser.add_argument("-k","--key", help="The key to be used to decrpt")
+parser.add_argument("-kf", help="Text file containg the binary key required to decrypt")
+
+encrypt_decrypt.add_argument("-en","--encrypt", help="True if you wish to decrypt plaintext, defualt is False. A key cannot be provided. en cannot be used with ct", action="store_true")
+encrypt_decrypt.add_argument("-dc","--decrypt", help="True if you wish to decrypt, defualt is False, key must be provided, dc cannot be used with pt.", action="store_true")
 args = parser.parse_args()
 
 
-
+#Generates a key with random length and even distribution
 def generateKey(len):
   hexKey = secrets.token_hex(len+(1+secrets.randbelow(1000)))
   intKey = int(hexKey,16)
@@ -31,7 +38,7 @@ def textToBin(text):
   for i in text:
     asciiChars.append(ord(i))
   for i in range(0,len(asciiChars)):
-    temp = (format(asciiChars[i],'08b'))#08b to keep leading 0's
+    temp = (format(asciiChars[i],'08b'))#08b to keep leading 0's and to keep looping through the cypher text consistant
     asciiChars[i] = temp
   binString = "".join(asciiChars)
   return binString
@@ -63,8 +70,9 @@ def logicalXOR(key,binText):
 
 #Encrypts plain text from agrs
 #If no key is given then by default one is generated using the legth of the plaintext.
-def encryptText(key=generateKey(len(args.plainText))):
-  binaryText = textToBin(args.plainText)
+def encryptText(plainText):
+  key=generateKey(len(plainText))
+  binaryText = textToBin(plainText)
   cypherText = logicalXOR(key,binaryText)
 
   return cypherText, key
@@ -77,19 +85,95 @@ def decryptCypher(key,cypherText):
 
   return plain
 
+
+#Function to create and write contents to a text file, if name is taken 
+#it keeps adding numbers to the end until its a new file. 
+#Returns the created filename
+def crWrToTextFile(fileName, contents):
+  txtCheck = re.search(".txt$",fileName)
+  if txtCheck == None:
+    return ".txtError"
+  name = fileName[:-4]
+  i = 1
+  while os.path.isfile(fileName) == True:
+    fileName = name
+    fileName+=str(i)+".txt"
+    i+=1
+  f = open(fileName,"w")
+  f.write(contents)
+  f.close()
+  return fileName
+
+
+def readTxtFile(fileName):
+    f = open(fileName,"r")#open file
+    lines = f.readlines()#read the entire file
+    plainText = "".join(lines)#joins each line together
+    return plainText
+
 def main():
   #CTK = CyhperText and Key where CTK[0] = cyphertext and CTK[1] = key
-  if args.encrypt == True:
-    if args.key == None:
-      CTK = encryptText()
+  if args.encrypt == True and (args.ptf != None or args.plainText != None):
+    if args.ptf == None:
+      CTK = encryptText(args.plainText)
       cypherText = CTK[0]
+      KEY = CTK[1]
     else:
-      CTK = encryptText(args.key)
+      #Open plaintext file
+      plainText = readTxtFile(args.ptf)
+      CTK = encryptText(plainText)#encrpts the text file and returns as CTK
       cypherText = CTK[0]
-    KEY = CTK[1]
-  #'elif args.decrypt == True:
+      KEY = CTK[1]
+    
+    #Get user choices for how they'd like the cypher text and key saved
 
-#print(decryptCypher(CTK[1],cypherText))
+    correct = False
+    choices = ["b","pt","f"]
+    while correct != True:
+      choice = input("Would you like the key and Cypher text to be printed to the console in:\nBinary, plain text or saveds binary to a text file? (b,pt,f)")
+      if choice not in choices:
+        print("Invalid input:\nb = print the key and cypher text in the console as binary\npt = print the key and cyphertext as ascii chars\nf = save to a text file")
+      else:
+        correct = True
+
+    #execute the users choices
+
+    if choice.lower() == "b":#Prints to concosle as binary representation
+      print("Cypher Text is: \" {} \"\n".format(cypherText))
+      print("Key is: \" {} \"\n".format(KEY))
+    elif choice.lower() == "pt":#Prints to console as plain text representation
+      print("Cypher Text is: \" {} \"\n".format(binToText(cypherText)))
+      print("Key is : \" {} \"\n".format(binToText(KEY)))
+    else:
+      #runs the crWrBinToTextFile() function to save the cyphertext and key in two seperate .txt files
+      try:
+        fileNameCypher = crWrToTextFile("CypherText.txt",cypherText)
+        fileNameKey = crWrToTextFile("Key.txt",KEY)
+        #Checks file is a .txt file
+        if fileNameCypher == ".txtError" or fileNameKey == ".txtError":
+          print("Wrong FileName")
+          sys.exit(1)
+        else:
+          print("Binary cypher text saved to a text file named {}".format(fileNameCypher))
+          print("Binary key saved to a text file name {}".format(fileNameKey))
+      except:
+        print("Could not save to files")
+
+  #If the user choice to decrypt
+  elif args.decrypt == True and (args.cypherText != None or args.ctf != None):
+    if args.ctf == None:
+      plain = decryptCypher(args.key,args.cypherText)
+      print("Text is:\n{}".format(plain))
+    else:#-kf
+      key = readTxtFile(args.kf)
+      cypher = readTxtFile(args.ctf)
+      plain = decryptCypher(key,cypher)
+      print("Text is:\n{}".format(plain))
+  else:
+    print("Invaldid input")
+    parser.print_help(sys.stderr)
+
 
 if __name__ == "__main__":
     main()
+
