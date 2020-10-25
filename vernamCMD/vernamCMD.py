@@ -163,12 +163,29 @@ def main():
   elif args.decrypt == True and (args.cypherText != None or args.ctf != None):
     if args.ctf == None:
       plain = decryptCypher(args.key,args.cypherText)
-      print("Text is:\n{}".format(plain))
     else:#-kf
       key = readTxtFile(args.kf)
       cypher = readTxtFile(args.ctf)
       plain = decryptCypher(key,cypher)
+    correct = False
+    choices = ["b","pt","no"]
+    while correct != True:
+      choice = input("Save to text file in plain text or binary? No to print to console and exit.(no,pt,b)\n")
+      if choice not in choices:
+        print("Invalid input:\nno to quit program\npt to save to a text file\nb to save the binary to a text file\n")
+      else:
+        correct = True
+    if choice == "b":
+      #saves as a binary string to a text file name binaryText.txt
+      fileName = crWrToTextFile("binaryText.txt", textToBin(plain))
+      print("Plain text has been saved as a binary string to {}.".format(fileName))
+    elif choice == "pt":
+      fileName = crWrToTextFile("plainText.txt", plain)
+      print("Plain text has been saved to {}".format(fileName))
+    else:
       print("Text is:\n{}".format(plain))
+      sys.exit(0)
+
   else:
     print("Invaldid input")
     parser.print_help(sys.stderr)
